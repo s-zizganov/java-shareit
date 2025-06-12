@@ -1,27 +1,30 @@
 package ru.practicum.shareit.booking.dto;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
 // Аннотация @Data генерирует геттеры, сеттеры, toString, equals и hashCode
 @Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class BookingDto {
     // Поле id — идентификатор бронирования
-    private Long id;
+    Long id;
 
     // Поле start — дата и время начала бронирования
-    private LocalDateTime start;
+    LocalDateTime start;
 
     // Поле end — дата и время окончания бронирования
-    private LocalDateTime end;
+    LocalDateTime end;
 
     // Поле itemId — идентификатор вещи
-    private Long itemId;
+    Long itemId;
 
     // Поле bookerId — идентификатор пользователя, сделавшего бронирование
-    private Long bookerId;
+    Long bookerId;
 
     // Поле status — статус бронирования
-    private String status;
+    String status;
 }

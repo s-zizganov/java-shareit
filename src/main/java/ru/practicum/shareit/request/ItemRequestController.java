@@ -17,10 +17,12 @@ public class ItemRequestController {
     private final Map<Long, ItemRequest> requests = new HashMap<>();
     // Счётчик для генерации уникальных ID
     private Long idCounter = 1L;
+    // Константа для имени заголовка
+    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     // Метод для создания нового запроса на вещь
     @PostMapping
-    public ResponseEntity<ItemRequestDto> createRequest(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<ItemRequestDto> createRequest(@RequestHeader(USER_ID_HEADER) Long userId,
                                                         @RequestBody ItemRequestDto requestDto) {
         // Проверяем, что описание предоставлено
         if (requestDto.getDescription() == null || requestDto.getDescription().isEmpty()) {
@@ -45,7 +47,7 @@ public class ItemRequestController {
 
     // Метод для получения списка запросов пользователя
     @GetMapping
-    public ResponseEntity<Map<Long, ItemRequestDto>> getUserRequests(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<Map<Long, ItemRequestDto>> getUserRequests(@RequestHeader(USER_ID_HEADER) Long userId) {
         // Создаём мапу для хранения DTO запросов
         Map<Long, ItemRequestDto> userRequests = new HashMap<>();
         for (Map.Entry<Long, ItemRequest> entry : requests.entrySet()) {

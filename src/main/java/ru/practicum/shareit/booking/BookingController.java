@@ -15,10 +15,12 @@ public class BookingController {
     private final Map<Long, Booking> bookings = new HashMap<>();
     // Счётчик для генерации уникальных ID
     private Long idCounter = 1L;
+    // Константа для имени заголовка
+    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
     // Метод для создания нового бронирования
     @PostMapping
-    public ResponseEntity<BookingDto> createBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<BookingDto> createBooking(@RequestHeader(USER_ID_HEADER) Long userId,
                                                     @RequestBody BookingDto bookingDto) {
         // Проверяем, что пользователь существует (заглушка)
         if (!isValidUser(userId)) {
@@ -45,7 +47,7 @@ public class BookingController {
 
     // Метод для подтверждения или отклонения бронирования
     @PatchMapping("/{bookingId}")
-    public ResponseEntity<BookingDto> approveBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<BookingDto> approveBooking(@RequestHeader(USER_ID_HEADER) Long userId,
                                                      @PathVariable Long bookingId,
                                                      @RequestParam boolean approved) {
         // Получаем бронирование по ID
@@ -67,7 +69,7 @@ public class BookingController {
 
     // Метод для получения информации о бронировании по ID
     @GetMapping("/{bookingId}")
-    public ResponseEntity<BookingDto> getBooking(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<BookingDto> getBooking(@RequestHeader(USER_ID_HEADER) Long userId,
                                                  @PathVariable Long bookingId) {
         // Получаем бронирование по ID
         Booking booking = bookings.get(bookingId);
@@ -81,7 +83,7 @@ public class BookingController {
 
     // Метод для получения списка бронирований пользователя или владельца
     @GetMapping
-    public ResponseEntity<Map<Long, BookingDto>> getBookings(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<Map<Long, BookingDto>> getBookings(@RequestHeader(USER_ID_HEADER) Long userId,
                                                              @RequestParam(required = false) String state) {
         // Создаём мапу для хранения DTO бронирований
         Map<Long, BookingDto> userBookings = new HashMap<>();

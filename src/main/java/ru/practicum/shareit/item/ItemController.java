@@ -20,9 +20,12 @@ public class ItemController {
     @Autowired
     private ItemService itemService; // Инъекция ItemService
 
+    // Константа для имени заголовка
+    private static final String USER_ID_HEADER = "X-Sharer-User-Id";
+
     // Метод для добавления новой вещи
     @PostMapping
-    public ResponseEntity<ItemDto> createItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<ItemDto> createItem(@RequestHeader(USER_ID_HEADER) Long userId,
                                               @RequestBody ItemDto itemDto) {
         if (itemDto == null || itemDto.getName() == null || itemDto.getName().isEmpty() ||
                 itemDto.getDescription() == null || itemDto.getDescription().isEmpty() ||
@@ -37,7 +40,7 @@ public class ItemController {
 
     // Метод для редактирования вещи
     @PatchMapping("/{itemId}")
-    public ResponseEntity<ItemDto> updateItem(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<ItemDto> updateItem(@RequestHeader(USER_ID_HEADER) Long userId,
                                               @PathVariable Long itemId, @RequestBody ItemDto itemDto) {
         if (!isValidUser(userId)) {
             return ResponseEntity.notFound().build(); // 404, если пользователь не найден
@@ -55,7 +58,7 @@ public class ItemController {
 
     // Метод для получения списка вещей владельца
     @GetMapping
-    public ResponseEntity<List<ItemDto>> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId) {
+    public ResponseEntity<List<ItemDto>> getUserItems(@RequestHeader(USER_ID_HEADER) Long userId) {
         if (!isValidUser(userId)) {
             return ResponseEntity.notFound().build();
         }
@@ -64,7 +67,7 @@ public class ItemController {
 
     // Метод для поиска вещей по тексту
     @GetMapping("/search")
-    public ResponseEntity<List<ItemDto>> searchItems(@RequestHeader("X-Sharer-User-Id") Long userId,
+    public ResponseEntity<List<ItemDto>> searchItems(@RequestHeader(USER_ID_HEADER) Long userId,
                                                      @RequestParam String text) {
         if (!isValidUser(userId)) {
             return ResponseEntity.notFound().build();

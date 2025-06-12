@@ -1,7 +1,9 @@
 package ru.practicum.shareit.booking;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
@@ -11,30 +13,31 @@ import java.time.LocalDateTime;
 @Entity
 // Аннотация @Table задаёт имя таблицы в базе данных
 @Table(name = "bookings")
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Booking {
     // Поле id — уникальный идентификатор бронирования
     @Id
     // Автоматическая генерация значения id (инкремент)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    Long id;
 
     // Поле start — дата и время начала бронирования, не может быть null
     @Column(name = "start_date", nullable = false)
-    private LocalDateTime start;
+    LocalDateTime start;
 
     // Поле end — дата и время окончания бронирования, не может быть null
     @Column(name = "end_date", nullable = false)
-    private LocalDateTime end;
+    LocalDateTime end;
 
     // Поле itemId — идентификатор вещи, не может быть null
     @Column(name = "item_id", nullable = false)
-    private Long itemId;
+    Long itemId;
 
     // Поле bookerId — идентификатор пользователя, сделавшего бронирование
     @Column(name = "booker_id", nullable = false)
-    private Long bookerId;
+    Long bookerId;
 
     // Поле status — статус бронирования (например, WAITING, APPROVED, REJECTED)
     @Column(nullable = false)
-    private String status;
+    String status;
 }
