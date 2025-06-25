@@ -8,13 +8,34 @@ import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
 
+/**
+ * DTO для ответа с информацией о бронировании
+ */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BookingResponseDto {
+    /**
+     * Идентификатор бронирования
+     */
     Long id;
+    /**
+     * Дата и время начала бронирования
+     */
     LocalDateTime start;
+    /**
+     * Дата и время окончания бронирования
+     */
     LocalDateTime end;
-    ItemDto item; // Заменяем itemId на item
-    UserDto booker; // Заменяем bookerId на booker
+    /**
+     * Информация о забронированной вещи
+     */
+    ItemDto item;
+    /**
+     * Информация о пользователе, создавшем бронирование
+     */
+    UserDto booker;
+    /**
+     * Статус бронирования (например, WAITING, APPROVED, REJECTED, CANCELED)
+     */
     String status;
 }

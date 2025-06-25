@@ -7,20 +7,55 @@ import lombok.experimental.FieldDefaults;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * DTO для предмета.
+ * Содержит информацию о предмете, его доступности, владельце, бронированиях и комментариях.
+ */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ItemDto {
+    /**
+     * Уникальный идентификатор предмета.
+     */
     Long id;
+
+    /**
+     * Название предмета.
+     */
     String name;
+
+    /**
+     * Описание предмета.
+     */
     String description;
+
+    /**
+     * Доступность предмета для бронирования.
+     */
     Boolean available;
+
+    /**
+     * Количество раз, когда предмет был арендован.
+     */
     Integer rentalCount;
+
+    /**
+     * Идентификатор владельца предмета.
+     */
     Long ownerId;
 
-    // Добавлены поля для дат последнего и ближайшего бронирования
-    LocalDateTime lastBooking; // Дата и время последнего бронирования
-    LocalDateTime nextBooking; // Дата и время ближайшего следующего бронирования
+    /**
+     * Время последнего бронирования предмета.
+     */
+    LocalDateTime lastBooking;
 
-    // Изменение: Добавлено поле для списка комментариев
+    /**
+     * Время следующего бронирования предмета.
+     */
+    LocalDateTime nextBooking;
+
+    /**
+     * Список комментариев к предмету.
+     */
     List<CommentDto> comments;
 }

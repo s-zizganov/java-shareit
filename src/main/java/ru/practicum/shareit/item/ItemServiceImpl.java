@@ -14,12 +14,12 @@ import ru.practicum.shareit.item.model.ItemRepository;
 import ru.practicum.shareit.user.UserService;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Реализация сервиса для работы с вещами.
+ */
 @Service
 @RequiredArgsConstructor // Добавлена аннотация @RequiredArgsConstructor для автоматической инъекции ItemRepository
 @Slf4j
@@ -36,7 +36,9 @@ public class ItemServiceImpl implements ItemService {
 
     private Long idCounter = 1L;
 
-    // Реализация метода создания вещи
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
         log.info("Creating item with userId: {}, itemDto: {}", userId, itemDto);
@@ -48,10 +50,11 @@ public class ItemServiceImpl implements ItemService {
         return ItemMapper.toItemDto(savedItem);
     }
 
-    // Реализация метода обновления вещи
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
-        // Использование itemRepository.findById вместо получения из Map
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
         if (!item.getOwnerId().equals(userId)) {
@@ -61,67 +64,65 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getName() != null) item.setName(itemDto.getName());
         if (itemDto.getDescription() != null) item.setDescription(itemDto.getDescription());
         if (itemDto.getAvailable() != null) item.setAvailable(itemDto.getAvailable());
-        // Использование itemRepository.save вместо обновления Map
         return ItemMapper.toItemDto(itemRepository.save(item));
     }
 
-    // Реализация метода получения вещи по ID
-    // Изменение: Исправлен метод getItem для возврата ItemDto с заполненными датами бронирований
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ItemDto getItem(Long userId, Long itemId) {
-        // Использование itemRepository.findById вместо получения из Map
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
 
 
         ItemDto itemDto = ItemMapper.toItemDto(item);
-        // Изменение: Заполнение дат бронирований для конкретной вещи
         fillBookingDates(itemDto, item.getId(), userId);
-        // Изменение: Добавлено заполнение списка комментариев
         fillComments(itemDto, itemId);
         return itemDto;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<ItemDto> getAllItems(Long userId) {
         List<Item> items = itemRepository.findByOwnerId(userId);
         List<ItemDto> itemDtos = items.stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
-        // Изменение: Заполнение дат бронирований для всех вещей владельца
         itemDtos.forEach(dto -> {
             fillBookingDates(dto, dto.getId(), userId);
-            // Изменение: Добавлено заполнение списка комментариев
             fillComments(dto, dto.getId());
         });
         return itemDtos;
     }
 
-    // Реализация метода получения списка вещей пользователя
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        // Использование itemRepository.findAll вместо итерации по Map
         List<Item> items = itemRepository.findAll().stream()
                 .filter(item -> item.getOwnerId().equals(userId))
                 .collect(Collectors.toList());
         List<ItemDto> itemDtos = items.stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
-        // Изменение: Заполнение дат бронирований для всех вещей владельца
         itemDtos.forEach(dto -> {
             fillBookingDates(dto, dto.getId(), userId);
-            // Изменение: Добавлено заполнение списка комментариев
             fillComments(dto, dto.getId());
         });
         return itemDtos;
     }
 
 
-    // Реализация метода поиска вещей по тексту
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<ItemDto> searchItems(Long userId, String text) {
         if (text == null || text.isEmpty()) return List.of();
-        // Использование itemRepository.findAll вместо итерации по Map
         return itemRepository.findAll().stream()
                 .filter(item -> item.getAvailable() != null && item.getAvailable() &&
                         (item.getName().toLowerCase().contains(text.toLowerCase()) ||
@@ -130,7 +131,9 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
     }
 
-    // Изменение: Реализация метода создания комментария
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CommentDto createComment(Long userId, Long itemId, CommentDto commentDto) {
         // Проверка существования вещи
@@ -145,7 +148,6 @@ public class ItemServiceImpl implements ItemService {
         if (!hasBooked) {
             throw new RuntimeException("Пользователь не арендовал эту вещь");
         }
-        // Получение имени автора
         String authorName = userService.getUser(userId)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"))
                 .getName();
@@ -162,6 +164,7 @@ public class ItemServiceImpl implements ItemService {
      * Заполняет даты последнего и ближайшего бронирования для указанной вещи.
      * @param itemDto DTO вещи, для которой нужно заполнить даты
      * @param itemId ID вещи
+     * @param userId ID текущего пользователя
      */
     private void fillBookingDates(ItemDto itemDto, Long itemId, Long userId) {
         LocalDateTime now = LocalDateTime.now();
@@ -192,7 +195,11 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    // Изменение: Метод для заполнения списка комментариев
+    /**
+     * Заполняет DTO вещи списком комментариев.
+     * @param itemDto DTO вещи, для которой нужно заполнить комментарии
+     * @param itemId ID вещи
+     */
     private void fillComments(ItemDto itemDto, Long itemId) {
         List<Comment> comments = commentRepository.findByItemId(itemId);
         List<CommentDto> commentDtos = comments.stream()

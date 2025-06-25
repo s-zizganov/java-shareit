@@ -6,17 +6,27 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
+/**
+ * DTO для пользователя.
+ * Используется для передачи данных о пользователе между слоями приложения.
+ */
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserDto {
-    // Поле id — идентификатор пользователя
+    /**
+     * Уникальный идентификатор пользователя.
+     */
     Long id;
 
-    // Поле name — имя пользователя
+    /**
+     * Имя пользователя. Не может быть null.
+     */
     @NotNull(message = "Name cannot be null")
     String name;
 
-    // Поле email — электронная почта пользователя
+    /**
+     * Электронная почта пользователя. Должна быть в корректном формате и не может быть null.
+     */
     @NotNull(message = "Email cannot be null")
     @Email(message = "Email should be valid")
     String email;

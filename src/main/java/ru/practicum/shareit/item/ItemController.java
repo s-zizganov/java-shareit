@@ -1,24 +1,25 @@
 package ru.practicum.shareit.item;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.user.UserController;
 import ru.practicum.shareit.user.UserService;
-import ru.practicum.shareit.user.dto.UserDto;
+
 
 import java.util.List;
 
+/**
+ * Контроллер для управления операциями с предметами аренды.
+ */
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
 public class ItemController {
 
 
-    // Убран UserController, инжектирован UserService
+    
     private final ItemService itemService;
     private final UserService userService;
 
@@ -26,9 +27,14 @@ public class ItemController {
     // Константа для имени заголовка
     private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
+    /**
+     * Получение всех предметов пользователя
+     * @param userId идентификатор пользователя
+     * @return список DTO предметов
+     */
     @GetMapping
-    // Изменение: Указываем, что возвращается список ItemDto с датами бронирований
-    public ResponseEntity<List<ItemDto>> getAllItems(@RequestHeader(USER_ID_HEADER) Long userId) {
+    public ResponseEntity<List<ItemDto>> getAllItems(
+            @RequestHeader(USER_ID_HEADER) Long userId) {
         return ResponseEntity.ok(itemService.getAllItems(userId));
     }
 
@@ -49,9 +55,18 @@ public class ItemController {
     }
 
     // Метод для редактирования вещи
+    /**
+     * Обновление информации о предмете
+     * @param userId идентификатор владельца
+     * @param itemId идентификатор предмета
+     * @param itemDto DTO с обновлёнными данными
+     * @return обновлённый DTO предмета
+     */
     @PatchMapping("/{itemId}")
-    public ResponseEntity<ItemDto> updateItem(@RequestHeader(USER_ID_HEADER) Long userId,
-                                              @PathVariable Long itemId, @RequestBody ItemDto itemDto) {
+    public ResponseEntity<ItemDto> updateItem(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @PathVariable Long itemId,
+            @RequestBody ItemDto itemDto) {
         // Валидация пользователя через UserService
         if (userService.getUser(userId).isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -85,18 +100,24 @@ public class ItemController {
     @GetMapping("/search")
     public ResponseEntity<List<ItemDto>> searchItems(@RequestHeader(USER_ID_HEADER) Long userId,
                                                      @RequestParam String text) {
-        // Изменение: Валидация пользователя через UserService
         if (userService.getUser(userId).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(itemService.searchItems(userId, text));
     }
 
-    // Изменение: Добавлен эндпоинт для создания комментария
+    /**
+     * Создание комментария к предмету
+     * @param userId идентификатор автора
+     * @param itemId идентификатор предмета
+     * @param commentDto DTO комментария
+     * @return созданный комментарий
+     */
     @PostMapping("/{itemId}/comment")
-    public ResponseEntity<CommentDto> createComment(@RequestHeader(USER_ID_HEADER) Long userId,
-                                                    @PathVariable Long itemId,
-                                                    @RequestBody CommentDto commentDto) {
+    public ResponseEntity<CommentDto> createComment(
+            @RequestHeader(USER_ID_HEADER) Long userId,
+            @PathVariable Long itemId,
+            @RequestBody CommentDto commentDto) {
         if (commentDto == null || commentDto.getText() == null || commentDto.getText().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }

@@ -20,15 +20,27 @@ import java.util.stream.Collectors;
  * Класс BookingServiceImpl реализует интерфейс BookingService и предоставляет бизнес-логику
  * для управления бронированиями (создание, утверждение, получение списка и т.д.).
  * Использует Spring Data JPA для взаимодействия с базой данных.
-*/
-@Service
-@RequiredArgsConstructor
+ */
+@Service // Аннотация указывает Spring, что этот класс является сервисом
+@RequiredArgsConstructor // Lombok аннотация для создания конструктора с обязательными полями
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository; // Репозиторий для работы с сущностями бронирований
     private final UserRepository userRepository; // Репозиторий для проверки существования пользователей
     private final ItemRepository itemRepository; // Репозиторий для проверки существования вещей и владельцев
 
-    @Override // Метод создаёт новое бронирование для указанного пользователя и вещи.
+    /**
+     * Создает новое бронирование для указанного пользователя и вещи.
+     * Проверяет корректность дат, доступность вещи и права пользователя.
+     * @param userId     ID пользователя, создающего бронирование
+     * @param bookingDto DTO с данными для создания бронирования
+     * @return DTO с информацией о созданном бронировании
+     * @throws IllegalArgumentException  если даты бронирования некорректны
+     * @throws ItemNotFoundException     если вещь не найдена
+     * @throws UserNotFoundException     если пользователь не найден
+     * @throws NotAvailableException     если вещь недоступна для бронирования
+     * @throws OwnerCannotBookException  если пользователь пытается забронировать свою вещь
+     */
+    @Override
     public BookingResponseDto createBooking(Long userId, BookingRequestDto bookingDto) {
         if (bookingDto.getStart() == null || bookingDto.getEnd() == null ||
                 bookingDto.getStart().isAfter(bookingDto.getEnd()) || bookingDto.getStart().isEqual(bookingDto.getEnd())) {
@@ -61,6 +73,18 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingResponseDto(savedBooking, item, booker);
     }
 
+    /**
+     * Подтверждает или отклоняет запрос на бронирование.
+     * Только владелец вещи может изменить статус бронирования.
+     * @param userId    ID пользователя, подтверждающего бронирование (владелец вещи)
+     * @param bookingId ID бронирования, которое нужно подтвердить или отклонить
+     * @param approved  true для подтверждения, false для отклонения
+     * @return DTO с информацией об обновленном бронировании
+     * @throws BookingNotFoundException    если бронирование не найдено
+     * @throws ItemNotFoundException      если вещь не найдена
+     * @throws AccessDeniedException      если пользователь не является владельцем вещи
+     * @throws InvalidBookingStateException если статус бронирования не WAITING
+     */
     @Override
     public BookingResponseDto approveBooking(Long userId, Long bookingId, boolean approved) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -80,6 +104,14 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingResponseDto(savedBooking, item, booker);
     }
 
+    /**
+     * Получает информацию о конкретном бронировании.
+     * Доступно только автору бронирования или владельцу вещи.
+     * @param userId    ID пользователя, запрашивающего информацию
+     * @param bookingId ID запрашиваемого бронирования
+     * @return Optional с DTO бронирования или пустой Optional, если бронирование не найдено
+     *         или пользователь не имеет прав на просмотр
+     */
     @Override
     public Optional<BookingResponseDto> getBooking(Long userId, Long bookingId) {
         return bookingRepository.findById(bookingId)
@@ -97,13 +129,20 @@ public class BookingServiceImpl implements BookingService {
                 });
     }
 
+    /**
+     * Получает список всех бронирований пользователя с фильтрацией по состоянию.
+     * Возможные значения state: ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED.
+     * @param userId ID пользователя, чьи бронирования нужно получить
+     * @param state  Состояние бронирований для фильтрации
+     * @return Список DTO бронирований, отсортированный по дате начала (от новых к старым)
+     */
     @Override
     public List<BookingResponseDto> getBookings(Long userId, String state) {
         LocalDateTime now = LocalDateTime.now();
         return bookingRepository.findAll().stream()
                 .filter(booking -> booking.getBookerId().equals(userId))
                 .filter(booking -> filterByState(booking, state, now))
-                .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart()))
+                .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart())) // Сортировка от новых к старым
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
                             .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
@@ -114,6 +153,15 @@ public class BookingServiceImpl implements BookingService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Получает список всех бронирований для вещей, принадлежащих указанному пользователю.
+     * Возможные значения state: ALL, CURRENT, PAST, FUTURE, WAITING, REJECTED.
+     * @param userId ID пользователя-владельца вещей
+     * @param state  Состояние бронирований для фильтрации
+     * @return Список DTO бронирований, отсортированный по дате начала (от новых к старым)
+     * @throws UserNotFoundException если пользователь не найден
+     * @throws NotFoundException если бронирования для владельца не найдены
+     */
     @Override
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state) {
         // Проверка существования пользователя
@@ -125,7 +173,7 @@ public class BookingServiceImpl implements BookingService {
                 .filter(booking -> itemRepository.findById(booking.getItemId())
                         .map(item -> item.getOwnerId().equals(userId)).orElse(false))
                 .filter(booking -> filterByState(booking, state, now))
-                .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart()))
+                .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart())) // Сортировка от новых к старым
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
                             .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
@@ -147,7 +195,7 @@ public class BookingServiceImpl implements BookingService {
      * Получает список всех бронирований для указанной вещи.
      * @param itemId ID вещи
      * @return List<BookingResponseDto> список бронирований
-*/
+     */
     @Override
     public List<BookingResponseDto> getBookingsForItem(Long itemId) {
         return bookingRepository.findAll().stream()
@@ -162,7 +210,13 @@ public class BookingServiceImpl implements BookingService {
                 .collect(Collectors.toList());
     }
 
-    // Метод фильтрует бронирование по состоянию на основе текущего времени.
+    /**
+     * Фильтрует бронирование по состоянию на основе текущего времени и статуса.
+     * @param booking Бронирование для проверки
+     * @param state Строковое представление состояния для фильтрации (CURRENT, PAST, FUTURE, WAITING, REJECTED, ALL)
+     * @param now Текущее время для сравнения с датами бронирования
+     * @return true если бронирование соответствует указанному состоянию, иначе false
+     */
     private boolean filterByState(Booking booking, String state, LocalDateTime now) {
         return switch (state.toUpperCase()) {
             case "CURRENT" -> booking.getStart().isBefore(now) && booking.getEnd().isAfter(now);

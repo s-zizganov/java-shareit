@@ -11,17 +11,25 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Реализация сервиса для работы с пользователями.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
-    // Простое регулярное выражение для проверки email (пример)
+    /**
+     * Паттерн для валидации email-адресов.
+     */
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
             "^[A-Za-z0-9+_.-]+@(.+)$"
     );
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public UserDto createUser(UserDto userDto) {
         log.debug("Validating user DTO: {}", userDto);
@@ -43,14 +51,15 @@ public class UserServiceImpl implements UserService {
             throw new ConflictException("Email " + userDto.getEmail() + " already exists");
         }
 
-        User user = new User();
-        user.setName(userDto.getName());
-        user.setEmail(userDto.getEmail());
+        User user = UserMapper.toUser(userDto);
         User savedUser = userRepository.save(user);
         log.debug("User saved successfully: {}", savedUser);
-        return toUserDto(savedUser);
+        return UserMapper.toUserDto(savedUser);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public UserDto updateUser(Long userId, UserDto userDto) {
         User user = userRepository.findById(userId)
@@ -61,32 +70,32 @@ public class UserServiceImpl implements UserService {
         } else if (userDto.getEmail() != null) {
             throw new ConflictException("Email already exists");
         }
-        return toUserDto(userRepository.save(user));
+        return UserMapper.toUserDto(userRepository.save(user));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Optional<UserDto> getUser(Long userId) {
-        // Изменение: Возвращаем Optional<UserDto> напрямую, без выбрасывания исключения
-        return userRepository.findById(userId).map(this::toUserDto);
+        return userRepository.findById(userId).map(UserMapper::toUserDto);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<UserDto> getAllUsers() {
         return userRepository.findAll().stream()
-                .map(this::toUserDto)
+                .map(UserMapper::toUserDto)
                 .collect(Collectors.toList());
     }
 
-    // Изменение: Добавлен метод для удаления пользователя
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void deleteUser(Long userId) {
         userRepository.deleteById(userId);
-    }
-
-    private UserDto toUserDto(User user) {
-        UserDto dto = new UserDto();
-        dto.setId(user.getId());
-        dto.setName(user.getName());
-        dto.setEmail(user.getEmail());
-        return dto;
     }
 }
