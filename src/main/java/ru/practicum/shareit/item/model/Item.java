@@ -22,6 +22,10 @@ public class Item {
 
     @Column(name = "is_available", nullable = false)
     Boolean available;
-    @Column(name = "owmer_id", nullable = false)
+    @Column(name = "owner_id", nullable = false)
     Long ownerId;
+
+    // Изменение: Добавлено поле rentalCount для отслеживания количества аренд
+    @Column(name = "rental_count")
+    Integer rentalCount;
 }

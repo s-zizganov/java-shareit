@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.User;
 
 import java.time.LocalDateTime;
 
@@ -31,13 +33,16 @@ public class Booking {
 
     // Поле itemId — идентификатор вещи, не может быть null
     @Column(name = "item_id", nullable = false)
-    Long itemId;
+     Long itemId;
+
 
     // Поле bookerId — идентификатор пользователя, сделавшего бронирование
     @Column(name = "booker_id", nullable = false)
-    Long bookerId;
+     Long bookerId;
+
 
     // Поле status — статус бронирования (например, WAITING, APPROVED, REJECTED)
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    String status;
+    private BookingStatus status;
 }

@@ -3,13 +3,15 @@ package ru.practicum.shareit.booking.dto;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
 
 // Аннотация @Data генерирует геттеры, сеттеры, toString, equals и hashCode
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class BookingDto {
+public class BookingResponseDto {
     // Поле id — идентификатор бронирования
     Long id;
 
@@ -26,5 +28,6 @@ public class BookingDto {
     Long bookerId;
 
     // Поле status — статус бронирования
-    String status;
+     String status;
+
 }
