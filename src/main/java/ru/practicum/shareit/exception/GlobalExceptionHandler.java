@@ -101,4 +101,11 @@ public class GlobalExceptionHandler {
         log.error("Произошла непредвиденная ошибка: {}", e.getMessage(), e);
         return new ErrorResponse("Unexpected error: " + e.getMessage());
     }
+
+    @ExceptionHandler(NotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleNotFoundException(NotFoundException e) {
+        log.warn("Не найдено: {}", e.getMessage());
+        return new ErrorResponse(e.getMessage());
+    }
 }

@@ -8,26 +8,13 @@ import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
 
-// Аннотация @Data генерирует геттеры, сеттеры, toString, equals и hashCode
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BookingResponseDto {
-    // Поле id — идентификатор бронирования
     Long id;
-
-    // Поле start — дата и время начала бронирования
     LocalDateTime start;
-
-    // Поле end — дата и время окончания бронирования
     LocalDateTime end;
-
-    // Поле itemId — идентификатор вещи
-    Long itemId;
-
-    // Поле bookerId — идентификатор пользователя, сделавшего бронирование
-    Long bookerId;
-
-    // Поле status — статус бронирования
-     String status;
-
+    ItemDto item; // Заменяем itemId на item
+    UserDto booker; // Заменяем bookerId на booker
+    String status;
 }

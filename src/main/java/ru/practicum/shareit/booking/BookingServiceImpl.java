@@ -57,65 +57,90 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = BookingMapper.toBooking(bookingDto);
         booking.setBookerId(userId);
         booking.setStatus(BookingStatus.WAITING);
-        return BookingMapper.toBookingResponseDto(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        return BookingMapper.toBookingResponseDto(savedBooking, item, booker);
     }
 
-    @Override // Метод утверждает или отклоняет существующее бронирование.
+    @Override
     public BookingResponseDto approveBooking(Long userId, Long bookingId, boolean approved) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException("Бронирование с ID " + bookingId + " не найдено"));
-        if (!itemRepository.findById(booking.getItemId())
-                .map(item -> item.getOwnerId().equals(userId)).orElse(false)) {
+        Item item = itemRepository.findById(booking.getItemId())
+                .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+        if (!item.getOwnerId().equals(userId)) {
             throw new AccessDeniedException("Только владелец может одобрить бронирование");
         }
-        if (!"WAITING".equals(booking.getStatus())) {
+        if (booking.getStatus() != BookingStatus.WAITING) {
             throw new InvalidBookingStateException("Статус бронирования должен быть WAITING");
         }
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
-        return BookingMapper.toBookingResponseDto(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        User booker = userRepository.findById(booking.getBookerId())
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+        return BookingMapper.toBookingResponseDto(savedBooking, item, booker);
     }
 
-    @Override // Метод получает данные о конкретном бронировании.
+    @Override
     public Optional<BookingResponseDto> getBooking(Long userId, Long bookingId) {
-        // Поиск бронирования по ID
         return bookingRepository.findById(bookingId)
-                // Фильтрация: доступ только для арендодателя или владельца вещи
-                .filter(booking -> booking.getBookerId().equals(userId) ||
-                        itemRepository.findById(booking.getItemId())
-                                .map(item -> item.getOwnerId().equals(userId)).orElse(false))
-                // Преобразование в DTO, если доступ разрешён
-                .map(BookingMapper::toBookingResponseDto);
+                .filter(booking -> {
+                    Item item = itemRepository.findById(booking.getItemId()).orElse(null);
+                    return booking.getBookerId().equals(userId) ||
+                            (item != null && item.getOwnerId().equals(userId));
+                })
+                .map(booking -> {
+                    Item item = itemRepository.findById(booking.getItemId())
+                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                    User booker = userRepository.findById(booking.getBookerId())
+                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                    return BookingMapper.toBookingResponseDto(booking, item, booker);
+                });
     }
 
-    @Override // Метод получает список бронирований для указанного пользователя.
+    @Override
     public List<BookingResponseDto> getBookings(Long userId, String state) {
-        LocalDateTime now = LocalDateTime.now(); // Текущая дата и время для фильтрации
-        // Получение всех бронирований и фильтрация по ID арендодателя
+        LocalDateTime now = LocalDateTime.now();
         return bookingRepository.findAll().stream()
                 .filter(booking -> booking.getBookerId().equals(userId))
-                // Фильтрация по состоянию (state)
                 .filter(booking -> filterByState(booking, state, now))
-                // Сортировка по убыванию даты начала
                 .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart()))
-                // Преобразование в список DTO
-                .map(BookingMapper::toBookingResponseDto)
+                .map(booking -> {
+                    Item item = itemRepository.findById(booking.getItemId())
+                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                    User booker = userRepository.findById(booking.getBookerId())
+                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                    return BookingMapper.toBookingResponseDto(booking, item, booker);
+                })
                 .collect(Collectors.toList());
     }
 
-    @Override // Метод получает список бронирований для вещей, принадлежащих указанному пользователю.
+    @Override
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state) {
-        LocalDateTime now = LocalDateTime.now(); // Текущая дата и время для фильтрации
-        // Получение всех бронирований и фильтрация по владельцу вещи
-        return bookingRepository.findAll().stream()
+        // Проверка существования пользователя
+        userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + userId + " не найден"));
+
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingResponseDto> bookings = bookingRepository.findAll().stream()
                 .filter(booking -> itemRepository.findById(booking.getItemId())
                         .map(item -> item.getOwnerId().equals(userId)).orElse(false))
-                // Фильтрация по состоянию (state)
                 .filter(booking -> filterByState(booking, state, now))
-                // Сортировка по убыванию даты начала
                 .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart()))
-                // Преобразование в список DTO
-                .map(BookingMapper::toBookingResponseDto)
+                .map(booking -> {
+                    Item item = itemRepository.findById(booking.getItemId())
+                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                    User booker = userRepository.findById(booking.getBookerId())
+                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                    return BookingMapper.toBookingResponseDto(booking, item, booker);
+                })
                 .collect(Collectors.toList());
+
+        // Если бронирований нет, выбросить исключение
+        if (bookings.isEmpty()) {
+            throw new NotFoundException("Бронирования для владельца с ID " + userId + " не найдены");
+        }
+
+        return bookings;
     }
 
     /**
@@ -125,24 +150,28 @@ public class BookingServiceImpl implements BookingService {
 */
     @Override
     public List<BookingResponseDto> getBookingsForItem(Long itemId) {
-        // Изменение: Фильтрация бронирований по itemId
         return bookingRepository.findAll().stream()
                 .filter(booking -> booking.getItemId().equals(itemId))
-                .map(BookingMapper::toBookingResponseDto)
+                .map(booking -> {
+                    Item item = itemRepository.findById(booking.getItemId())
+                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                    User booker = userRepository.findById(booking.getBookerId())
+                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                    return BookingMapper.toBookingResponseDto(booking, item, booker);
+                })
                 .collect(Collectors.toList());
     }
 
     // Метод фильтрует бронирование по состоянию на основе текущего времени.
     private boolean filterByState(Booking booking, String state, LocalDateTime now) {
-        // Логика фильтрации в зависимости от значения state
         return switch (state.toUpperCase()) {
-            case "CURRENT" -> booking.getStart().isBefore(now) && booking.getEnd().isAfter(now); // Текущие бронирования
-            case "PAST" -> booking.getEnd().isBefore(now); // Завершённые бронирования
-            case "FUTURE" -> booking.getStart().isAfter(now); // Будущие бронирования
-            case "WAITING" -> "WAITING".equals(booking.getStatus()); // Ожидающие подтверждения
-            case "REJECTED" -> "REJECTED".equals(booking.getStatus()); // Отклонённые
-            case "ALL" -> true; // Все бронирования
-            default -> false; // Неверный state
+            case "CURRENT" -> booking.getStart().isBefore(now) && booking.getEnd().isAfter(now);
+            case "PAST" -> booking.getEnd().isBefore(now);
+            case "FUTURE" -> booking.getStart().isAfter(now);
+            case "WAITING" -> booking.getStatus() == BookingStatus.WAITING;
+            case "REJECTED" -> booking.getStatus() == BookingStatus.REJECTED;
+            case "ALL" -> true;
+            default -> false;
         };
     }
 

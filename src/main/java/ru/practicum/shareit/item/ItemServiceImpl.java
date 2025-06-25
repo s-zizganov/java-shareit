@@ -141,7 +141,7 @@ public class ItemServiceImpl implements ItemService {
         // Проверка, что пользователь арендовал вещь
         List<BookingResponseDto> bookings = bookingService.getBookingsForItem(itemId);
         boolean hasBooked = bookings.stream()
-                .anyMatch(booking -> booking.getBookerId().equals(userId) &&
+                .anyMatch(booking -> booking.getBooker().getId().equals(userId) &&
                         booking.getEnd().isBefore(LocalDateTime.now()) &&
                         booking.getStatus().equals("APPROVED"));
         if (!hasBooked) {
