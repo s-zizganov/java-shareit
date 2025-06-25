@@ -18,11 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ItemController {
 
-
-    
     private final ItemService itemService;
     private final UserService userService;
-
 
     // Константа для имени заголовка
     private static final String USER_ID_HEADER = "X-Sharer-User-Id";

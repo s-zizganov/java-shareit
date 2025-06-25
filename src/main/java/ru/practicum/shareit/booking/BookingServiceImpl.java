@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-
 /**
  * Класс BookingServiceImpl реализует интерфейс BookingService и предоставляет бизнес-логику
  * для управления бронированиями (создание, утверждение, получение списка и т.д.).
