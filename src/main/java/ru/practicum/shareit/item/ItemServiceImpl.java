@@ -72,13 +72,11 @@ public class ItemServiceImpl implements ItemService {
         // Использование itemRepository.findById вместо получения из Map
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
-        // Изменение: Проверка прав доступа
-        if (!item.getOwnerId().equals(userId)) {
-            throw new RuntimeException("Доступ запрещён: вещь принадлежит другому пользователю");
-        }
+
+
         ItemDto itemDto = ItemMapper.toItemDto(item);
         // Изменение: Заполнение дат бронирований для конкретной вещи
-        fillBookingDates(itemDto, item.getId());
+        fillBookingDates(itemDto, item.getId(), userId);
         // Изменение: Добавлено заполнение списка комментариев
         fillComments(itemDto, itemId);
         return itemDto;
@@ -92,7 +90,7 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
         // Изменение: Заполнение дат бронирований для всех вещей владельца
         itemDtos.forEach(dto -> {
-            fillBookingDates(dto, dto.getId());
+            fillBookingDates(dto, dto.getId(), userId);
             // Изменение: Добавлено заполнение списка комментариев
             fillComments(dto, dto.getId());
         });
@@ -111,7 +109,7 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
         // Изменение: Заполнение дат бронирований для всех вещей владельца
         itemDtos.forEach(dto -> {
-            fillBookingDates(dto, dto.getId());
+            fillBookingDates(dto, dto.getId(), userId);
             // Изменение: Добавлено заполнение списка комментариев
             fillComments(dto, dto.getId());
         });
@@ -165,20 +163,29 @@ public class ItemServiceImpl implements ItemService {
      * @param itemDto DTO вещи, для которой нужно заполнить даты
      * @param itemId ID вещи
      */
-    private void fillBookingDates(ItemDto itemDto, Long itemId) {
+    private void fillBookingDates(ItemDto itemDto, Long itemId, Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        // Изменение: Получаем все бронирования для вещи через BookingService
+        // Проверяем, является ли пользователь владельцем вещи
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
+        if (!item.getOwnerId().equals(userId)) {
+            // Для невладельцев устанавливаем lastBooking и nextBooking в null
+            itemDto.setLastBooking(null);
+            itemDto.setNextBooking(null);
+            return;
+        }
+        // Для владельца заполняем даты бронирований
         List<BookingResponseDto> bookings = bookingService.getBookingsForItem(itemId);
         if (bookings != null && !bookings.isEmpty()) {
-            // Изменение: Находим последнее бронирование (максимальная end дата до now)
+            // Находим последнее бронирование (максимальная end дата до now)
             itemDto.setLastBooking(bookings.stream()
-                    .filter(b -> b.getEnd().isBefore(now))
+                    .filter(b -> b.getEnd().isBefore(now) && b.getStatus().equals("APPROVED"))
                     .max((b1, b2) -> b1.getEnd().compareTo(b2.getEnd()))
                     .map(BookingResponseDto::getEnd)
                     .orElse(null));
-            // Изменение: Находим ближайшее следующее бронирование (минимальная start дата после now)
+            // Находим ближайшее следующее бронирование (минимальная start дата после now)
             itemDto.setNextBooking(bookings.stream()
-                    .filter(b -> b.getStart().isAfter(now))
+                    .filter(b -> b.getStart().isAfter(now) && b.getStatus().equals("APPROVED"))
                     .min((b1, b2) -> b1.getStart().compareTo(b2.getStart()))
                     .map(BookingResponseDto::getStart)
                     .orElse(null));
