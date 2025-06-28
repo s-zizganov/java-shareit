@@ -43,26 +43,32 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponseDto createBooking(Long userId, BookingRequestDto bookingDto) {
         if (bookingDto.getStart() == null || bookingDto.getEnd() == null ||
                 bookingDto.getStart().isAfter(bookingDto.getEnd()) || bookingDto.getStart().isEqual(bookingDto.getEnd())) {
-            throw new IllegalArgumentException("Некорректные даты бронирования");
+            throw new IllegalArgumentException(String.format("Некорректные даты бронирования для вещи с ID %d",
+                    bookingDto.getItemId() != null ? bookingDto.getItemId() : "не указан"));
         }
         if (bookingDto.getItemId() == null) {
-            throw new ItemNotFoundException("Идентификатор вещи не указан");
+            throw new ItemNotFoundException("Идентификатор вещи не указан в запросе на бронирование");
         }
         if (!userRepository.existsById(userId)) {
-            throw new UserNotFoundException("Пользователь с ID " + userId + " не найден");
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден при создании бронирования",
+                    userId));
         }
 
         User booker = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + userId + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не найден при создании " +
+                        "бронирования", userId)));
 
         Item item = itemRepository.findById(bookingDto.getItemId())
-                .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + bookingDto.getItemId() + " не найдена"));
+                .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена при создании " +
+                        "бронирования", bookingDto.getItemId())));
 
         if (!item.getAvailable()) {
-            throw new NotAvailableException("Вещь недоступна для бронирования");
+            throw new NotAvailableException(String.format("Вещь с ID %d недоступна для бронирования",
+                    bookingDto.getItemId()));
         }
         if (item.getOwnerId().equals(userId)) {
-            throw new OwnerCannotBookException("Владелец не может бронировать свою вещь");
+            throw new OwnerCannotBookException(String.format("Пользователь с ID %d не может бронировать свою вещь " +
+                    "с ID %d", userId, bookingDto.getItemId()));
         }
 
         Booking booking = BookingMapper.toBooking(bookingDto);
@@ -87,19 +93,24 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponseDto approveBooking(Long userId, Long bookingId, boolean approved) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Бронирование с ID " + bookingId + " не найдено"));
+                .orElseThrow(() -> new BookingNotFoundException(String.format("Бронирование с ID %d не найдено",
+                        bookingId)));
         Item item = itemRepository.findById(booking.getItemId())
-                .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена для бронирования %d"
+                        , booking.getItemId(), bookingId)));
         if (!item.getOwnerId().equals(userId)) {
-            throw new AccessDeniedException("Только владелец может одобрить бронирование");
+            throw new AccessDeniedException(String.format("Пользователь с ID %d не является владельцем вещи с ID %d",
+                    userId, booking.getItemId()));
         }
         if (booking.getStatus() != BookingStatus.WAITING) {
-            throw new InvalidBookingStateException("Статус бронирования должен быть WAITING");
+            throw new InvalidBookingStateException(String.format("Статус бронирования с ID %d должен быть WAITING, " +
+                    "текущий статус: %s", bookingId, booking.getStatus()));
         }
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
         Booking savedBooking = bookingRepository.save(booking);
         User booker = userRepository.findById(booking.getBookerId())
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не найден " +
+                        "для бронирования %d", booking.getBookerId(), bookingId)));
         return BookingMapper.toBookingResponseDto(savedBooking, item, booker);
     }
 
@@ -121,9 +132,11 @@ public class BookingServiceImpl implements BookingService {
                 })
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
-                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                            .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена для " +
+                                    "бронирования %d", booking.getItemId(), bookingId)));
                     User booker = userRepository.findById(booking.getBookerId())
-                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                            .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не " +
+                                    "найден для бронирования %d", booking.getBookerId(), bookingId)));
                     return BookingMapper.toBookingResponseDto(booking, item, booker);
                 });
     }
@@ -144,9 +157,11 @@ public class BookingServiceImpl implements BookingService {
                 .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart())) // Сортировка от новых к старым
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
-                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                            .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена для" +
+                                    " бронирования %d", booking.getItemId(), booking.getId())));
                     User booker = userRepository.findById(booking.getBookerId())
-                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                            .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не найден" +
+                                    " для бронирования %d", booking.getBookerId(), booking.getId())));
                     return BookingMapper.toBookingResponseDto(booking, item, booker);
                 })
                 .collect(Collectors.toList());
@@ -165,7 +180,8 @@ public class BookingServiceImpl implements BookingService {
     public List<BookingResponseDto> getOwnerBookings(Long userId, String state) {
         // Проверка существования пользователя
         userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + userId + " не найден"));
+                .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не найден при " +
+                        "запросе бронирований владельца", userId)));
 
         LocalDateTime now = LocalDateTime.now();
         List<BookingResponseDto> bookings = bookingRepository.findAll().stream()
@@ -175,16 +191,19 @@ public class BookingServiceImpl implements BookingService {
                 .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart())) // Сортировка от новых к старым
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
-                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                            .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена " +
+                                    "для бронирования %d", booking.getItemId(), booking.getId())));
                     User booker = userRepository.findById(booking.getBookerId())
-                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                            .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не " +
+                                    "найден для бронирования %d", booking.getBookerId(), booking.getId())));
                     return BookingMapper.toBookingResponseDto(booking, item, booker);
                 })
                 .collect(Collectors.toList());
 
         // Если бронирований нет, выбросить исключение
         if (bookings.isEmpty()) {
-            throw new NotFoundException("Бронирования для владельца с ID " + userId + " не найдены");
+            throw new NotFoundException(String.format("Бронирования для владельца с ID %d не найдены для состояния %s",
+                    userId, state));
         }
 
         return bookings;
@@ -201,9 +220,11 @@ public class BookingServiceImpl implements BookingService {
                 .filter(booking -> booking.getItemId().equals(itemId))
                 .map(booking -> {
                     Item item = itemRepository.findById(booking.getItemId())
-                            .orElseThrow(() -> new ItemNotFoundException("Вещь с ID " + booking.getItemId() + " не найдена"));
+                            .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не " +
+                                    "найдена для бронирования %d", booking.getItemId(), booking.getId())));
                     User booker = userRepository.findById(booking.getBookerId())
-                            .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + booking.getBookerId() + " не найден"));
+                            .orElseThrow(() -> new UserNotFoundException(String.format("Пользователь с ID %d не" +
+                                    " найден для бронирования %d", booking.getBookerId(), booking.getId())));
                     return BookingMapper.toBookingResponseDto(booking, item, booker);
                 })
                 .collect(Collectors.toList());
