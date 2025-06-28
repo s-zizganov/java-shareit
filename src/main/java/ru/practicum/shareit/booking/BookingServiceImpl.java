@@ -96,8 +96,8 @@ public class BookingServiceImpl implements BookingService {
                 .orElseThrow(() -> new BookingNotFoundException(String.format("Бронирование с ID %d не найдено",
                         bookingId)));
         Item item = itemRepository.findById(booking.getItemId())
-                .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена для бронирования %d"
-                        , booking.getItemId(), bookingId)));
+                .orElseThrow(() -> new ItemNotFoundException(String.format("Вещь с ID %d не найдена для" +
+                        " бронирования %d", booking.getItemId(), bookingId)));
         if (!item.getOwnerId().equals(userId)) {
             throw new AccessDeniedException(String.format("Пользователь с ID %d не является владельцем вещи с ID %d",
                     userId, booking.getItemId()));
