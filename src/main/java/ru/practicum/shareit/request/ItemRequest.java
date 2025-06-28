@@ -7,27 +7,38 @@ import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
 
-// Аннотация @Entity указывает, что класс является сущностью для базы данных
+/**
+ * Класс, представляющий запрос на вещь.
+ * Используется для хранения информации о запросах в базе данных.
+ */
 @Entity
 // Аннотация @Table задаёт имя таблицы в базе данных
 @Table(name = "requests")
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ItemRequest {
-    // Поле id — уникальный идентификатор запроса
+    /**
+     * Уникальный идентификатор запроса.
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    // Поле description — описание запроса, не может быть null
+    /**
+     * Текст запроса, содержащий описание требуемой вещи.
+     */
     @Column(nullable = false)
     String description;
 
-    // Поле requesterId — идентификатор пользователя, создавшего запрос
+    /**
+     * Идентификатор пользователя, создавшего запрос.
+     */
     @Column(name = "requester_id", nullable = false)
     Long requesterId;
 
-    // Поле created — дата и время создания запроса, не может быть null
+    /**
+     * Дата и время создания запроса.
+     */
     @Column(nullable = false)
     LocalDateTime created;
 }
