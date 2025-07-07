@@ -8,19 +8,34 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-// Аннотация @RestController указывает, что это REST-контроллер
+/**
+ * REST-контроллер для обработки запросов на вещи.
+ * Предоставляет эндпоинты для создания и получения запросов.
+ */
 @RestController
-// Базовый путь для всех эндпоинтов этого контроллера
 @RequestMapping(path = "/requests")
 public class ItemRequestController {
-    // Хранилище запросов в памяти, ключ — ID запроса
+    /**
+     * Хранилище запросов в памяти, где ключ — ID запроса.
+     */
     private final Map<Long, ItemRequest> requests = new HashMap<>();
-    // Счётчик для генерации уникальных ID
+    /**
+     * Счётчик для генерации уникальных ID запросов.
+     */
     private Long idCounter = 1L;
-    // Константа для имени заголовка
+    /**
+     * Константа для имени заголовка с ID пользователя.
+     */
     private static final String USER_ID_HEADER = "X-Sharer-User-Id";
 
-    // Метод для создания нового запроса на вещь
+    /**
+     * Создает новый запрос на вещь.
+     *
+     * @param userId     Идентификатор пользователя, создающего запрос. Передаётся в заголовке.
+     * @param requestDto DTO с данными для создания запроса.
+     * @return {@link ResponseEntity} с DTO созданного запроса и статусом 201.
+     *         В случае некорректных данных возвращает статус 400.
+     */
     @PostMapping
     public ResponseEntity<ItemRequestDto> createRequest(@RequestHeader(USER_ID_HEADER) Long userId,
                                                         @RequestBody ItemRequestDto requestDto) {
@@ -45,7 +60,12 @@ public class ItemRequestController {
         ));
     }
 
-    // Метод для получения списка запросов пользователя
+    /**
+     * Возвращает список запросов, созданных пользователем.
+     *
+     * @param userId Идентификатор пользователя, чьи запросы нужно получить.
+     * @return {@link ResponseEntity} с картой запросов пользователя и статусом 200.
+     */
     @GetMapping
     public ResponseEntity<Map<Long, ItemRequestDto>> getUserRequests(@RequestHeader(USER_ID_HEADER) Long userId) {
         // Создаём мапу для хранения DTO запросов
