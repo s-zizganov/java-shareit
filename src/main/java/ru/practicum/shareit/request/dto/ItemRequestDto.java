@@ -5,6 +5,7 @@ import lombok.Value;
 import lombok.experimental.FieldDefaults;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO для запроса вещи.
@@ -28,4 +29,16 @@ public class ItemRequestDto {
      * Идентификатор пользователя, создавшего запрос.
      */
     Long requesterId;
+    /**
+     * Список вещей, добавленных в ответ на запрос.
+     */
+    List<ItemResponse> items;
+
+    @Value
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ItemResponse {
+        Long id;
+        String name;
+        Long ownerId;
+    }
 }

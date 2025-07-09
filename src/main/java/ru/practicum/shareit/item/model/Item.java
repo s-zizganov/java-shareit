@@ -49,4 +49,10 @@ public class Item {
      */
     @Column(name = "rental_count")
     Integer rentalCount;
+
+    /**
+     * Идентификатор запроса, связанного с предметом
+     */
+    @Column(name = "request_id")
+    Long requestId;
 }

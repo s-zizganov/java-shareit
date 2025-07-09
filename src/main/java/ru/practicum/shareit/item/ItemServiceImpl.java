@@ -11,7 +11,10 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.CommentRepository;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.model.ItemRepository;
+import ru.practicum.shareit.request.ItemRequestRepository;
 import ru.practicum.shareit.user.UserService;
+import ru.practicum.shareit.exception.UserNotFoundException;
+import ru.practicum.shareit.exception.ItemRequestNotFoundException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,108 +24,116 @@ import java.util.stream.Collectors;
  * Реализация сервиса для работы с вещами.
  */
 @Service
-@RequiredArgsConstructor // Добавлена аннотация @RequiredArgsConstructor для автоматической инъекции ItemRepository
+@RequiredArgsConstructor
 @Slf4j
 public class ItemServiceImpl implements ItemService {
-
     private final ItemRepository itemRepository;
-
-    // Добавлена зависимость от BookingService для получения данных о бронированиях
     private final BookingService bookingService;
-
     private final CommentRepository commentRepository;
-    // Изменение: Добавлена зависимость от UserService для получения имени автора
     private final UserService userService;
+    private final ItemRequestRepository itemRequestRepository;
 
-    private Long idCounter = 1L;
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
-        log.info("Creating item with userId: {}, itemDto: {}", userId, itemDto);
+        log.info("Creating item for user ID {}, itemDto: {}", userId, itemDto);
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
+        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
+            throw new IllegalArgumentException("Название вещи не может быть пустым");
+        }
+        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
+            throw new IllegalArgumentException("Описание вещи не может быть пустым");
+        }
+        if (itemDto.getAvailable() == null) {
+            throw new IllegalArgumentException("Статус доступности вещи должен быть указан");
+        }
+        if (itemDto.getRequestId() != null && !itemRequestRepository.existsById(itemDto.getRequestId())) {
+            throw new ItemRequestNotFoundException(String.format("Запрос с ID %d не найден", itemDto.getRequestId()));
+        }
         Item item = ItemMapper.toItem(itemDto);
-        item.setId(idCounter++);
         item.setOwnerId(userId);
         Item savedItem = itemRepository.save(item);
         log.info("Saved item: {}", savedItem);
         return ItemMapper.toItemDto(savedItem);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ItemDto updateItem(Long userId, Long itemId, ItemDto itemDto) {
-        Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
-        if (!item.getOwnerId().equals(userId)) {
-            throw new RuntimeException("Пользователь не является владельцем");
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
         }
-        // Обновляем поля, если они предоставлены
-        if (itemDto.getName() != null) item.setName(itemDto.getName());
-        if (itemDto.getDescription() != null) item.setDescription(itemDto.getDescription());
-        if (itemDto.getAvailable() != null) item.setAvailable(itemDto.getAvailable());
-        return ItemMapper.toItemDto(itemRepository.save(item));
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Вещь с ID %d не найдена", itemId)));
+        if (!item.getOwnerId().equals(userId)) {
+            throw new IllegalArgumentException("Пользователь не является владельцем");
+        }
+        if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
+            item.setName(itemDto.getName());
+        }
+        if (itemDto.getDescription() != null && !itemDto.getDescription().isBlank()) {
+            item.setDescription(itemDto.getDescription());
+        }
+        if (itemDto.getAvailable() != null) {
+            item.setAvailable(itemDto.getAvailable());
+        }
+        Item updatedItem = itemRepository.save(item);
+        return ItemMapper.toItemDto(updatedItem);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public ItemDto getItem(Long userId, Long itemId) {
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
-
-
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Вещь с ID %d не найдена", itemId)));
         ItemDto itemDto = ItemMapper.toItemDto(item);
         fillBookingDates(itemDto, item.getId(), userId);
         fillComments(itemDto, itemId);
         return itemDto;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<ItemDto> getAllItems(Long userId) {
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
         List<Item> items = itemRepository.findByOwnerId(userId);
-        List<ItemDto> itemDtos = items.stream()
-                .map(ItemMapper::toItemDto)
+        return items.stream()
+                .map(item -> {
+                    ItemDto dto = ItemMapper.toItemDto(item);
+                    fillBookingDates(dto, item.getId(), userId);
+                    fillComments(dto, item.getId());
+                    return dto;
+                })
                 .collect(Collectors.toList());
-        itemDtos.forEach(dto -> {
-            fillBookingDates(dto, dto.getId(), userId);
-            fillComments(dto, dto.getId());
-        });
-        return itemDtos;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        List<Item> items = itemRepository.findAll().stream()
-                .filter(item -> item.getOwnerId().equals(userId))
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
+        List<Item> items = itemRepository.findByOwnerId(userId);
+        return items.stream()
+                .map(item -> {
+                    ItemDto dto = ItemMapper.toItemDto(item);
+                    fillBookingDates(dto, item.getId(), userId);
+                    fillComments(dto, item.getId());
+                    return dto;
+                })
                 .collect(Collectors.toList());
-        List<ItemDto> itemDtos = items.stream()
-                .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
-        itemDtos.forEach(dto -> {
-            fillBookingDates(dto, dto.getId(), userId);
-            fillComments(dto, dto.getId());
-        });
-        return itemDtos;
     }
 
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public List<ItemDto> searchItems(Long userId, String text) {
-        if (text == null || text.isEmpty()) return List.of();
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
         return itemRepository.findAll().stream()
                 .filter(item -> item.getAvailable() != null && item.getAvailable() &&
                         (item.getName().toLowerCase().contains(text.toLowerCase()) ||
@@ -131,27 +142,24 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public CommentDto createComment(Long userId, Long itemId, CommentDto commentDto) {
-        // Проверка существования вещи
+        if (!userService.getUser(userId).isPresent()) {
+            throw new UserNotFoundException(String.format("Пользователь с ID %d не найден", userId));
+        }
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
-        // Проверка, что пользователь арендовал вещь
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Вещь с ID %d не найдена", itemId)));
         List<BookingResponseDto> bookings = bookingService.getBookingsForItem(itemId);
         boolean hasBooked = bookings.stream()
                 .anyMatch(booking -> booking.getBooker().getId().equals(userId) &&
                         booking.getEnd().isBefore(LocalDateTime.now()) &&
                         booking.getStatus().equals("APPROVED"));
         if (!hasBooked) {
-            throw new RuntimeException("Пользователь не арендовал эту вещь");
+            throw new IllegalArgumentException("Пользователь не арендовал эту вещь");
         }
         String authorName = userService.getUser(userId)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"))
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"))
                 .getName();
-        // Создание комментария
         Comment comment = CommentMapper.toComment(commentDto);
         comment.setItemId(itemId);
         comment.setAuthorId(userId);
@@ -160,33 +168,22 @@ public class ItemServiceImpl implements ItemService {
         return CommentMapper.toCommentDto(savedComment, authorName);
     }
 
-    /**
-     * Заполняет даты последнего и ближайшего бронирования для указанной вещи.
-     * @param itemDto DTO вещи, для которой нужно заполнить даты
-     * @param itemId ID вещи
-     * @param userId ID текущего пользователя
-     */
     private void fillBookingDates(ItemDto itemDto, Long itemId, Long userId) {
         LocalDateTime now = LocalDateTime.now();
-        // Проверяем, является ли пользователь владельцем вещи
         Item item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new RuntimeException("Вещь не найдена"));
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Вещь с ID %d не найдена", itemId)));
         if (!item.getOwnerId().equals(userId)) {
-            // Для невладельцев устанавливаем lastBooking и nextBooking в null
             itemDto.setLastBooking(null);
             itemDto.setNextBooking(null);
             return;
         }
-        // Для владельца заполняем даты бронирований
         List<BookingResponseDto> bookings = bookingService.getBookingsForItem(itemId);
         if (bookings != null && !bookings.isEmpty()) {
-            // Находим последнее бронирование (максимальная end дата до now)
             itemDto.setLastBooking(bookings.stream()
                     .filter(b -> b.getEnd().isBefore(now) && b.getStatus().equals("APPROVED"))
                     .max((b1, b2) -> b1.getEnd().compareTo(b2.getEnd()))
                     .map(BookingResponseDto::getEnd)
                     .orElse(null));
-            // Находим ближайшее следующее бронирование (минимальная start дата после now)
             itemDto.setNextBooking(bookings.stream()
                     .filter(b -> b.getStart().isAfter(now) && b.getStatus().equals("APPROVED"))
                     .min((b1, b2) -> b1.getStart().compareTo(b2.getStart()))
@@ -195,17 +192,12 @@ public class ItemServiceImpl implements ItemService {
         }
     }
 
-    /**
-     * Заполняет DTO вещи списком комментариев.
-     * @param itemDto DTO вещи, для которой нужно заполнить комментарии
-     * @param itemId ID вещи
-     */
     private void fillComments(ItemDto itemDto, Long itemId) {
         List<Comment> comments = commentRepository.findByItemId(itemId);
         List<CommentDto> commentDtos = comments.stream()
                 .map(comment -> {
                     String authorName = userService.getUser(comment.getAuthorId())
-                            .orElseThrow(() -> new RuntimeException("Пользователь не найден"))
+                            .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"))
                             .getName();
                     return CommentMapper.toCommentDto(comment, authorName);
                 })

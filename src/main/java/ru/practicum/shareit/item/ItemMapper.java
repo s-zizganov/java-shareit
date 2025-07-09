@@ -23,6 +23,7 @@ public class ItemMapper {
         // Изменение: Поля lastBooking и nextBooking оставляем null, так как они заполняются в ItemServiceImpl
         itemDto.setLastBooking(null);
         itemDto.setNextBooking(null);
+        item.getRequestId();
         return itemDto;
     }
 
@@ -42,6 +43,8 @@ public class ItemMapper {
         item.setRentalCount(itemDto.getRentalCount() != null ? itemDto.getRentalCount() : 0); // Установить 0 по умолчанию
         // Изменение: Копируем ownerId
         item.setOwnerId(itemDto.getOwnerId());
+
+        item.setRequestId(itemDto.getRequestId());
         return item;
     }
 }
