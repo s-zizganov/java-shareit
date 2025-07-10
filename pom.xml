@@ -212,9 +212,8 @@
 							<execution>
 								<phase>validate</phase>
 								<goals>
-									<goal>validate</goal>
+									<goal>check</goal>
 								</goals>
-								<id>check</id>
 							</execution>
 						</executions>
 					</plugin>
@@ -227,7 +226,6 @@
 								<goals>
 									<goal>check</goal>
 								</goals>
-								<id>check</id>
 							</execution>
 						</executions>
 					</plugin>
