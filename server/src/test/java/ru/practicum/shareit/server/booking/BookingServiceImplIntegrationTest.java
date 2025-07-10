@@ -1,5 +1,6 @@
 package ru.practicum.shareit.server.booking;
 
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = ShareItServer.class)
 @ActiveProfiles("test")
+@Transactional
 class BookingServiceImplIntegrationTest {
 
     @Autowired

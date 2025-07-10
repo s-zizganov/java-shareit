@@ -1,5 +1,6 @@
 package ru.practicum.shareit.server.user; // Исправлен пакет
 
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = ShareItServer.class)
+@Transactional
 class UserServiceImplIntegrationTest {
 
     @Autowired
