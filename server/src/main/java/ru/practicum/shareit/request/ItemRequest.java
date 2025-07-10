@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 // Аннотация @Table задаёт имя таблицы в базе данных
-@Table(name = "requests")
+@Table(name = "requests") //
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ItemRequest {
