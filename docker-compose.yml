@@ -9,11 +9,6 @@ services:
       - server
     environment:
       - SHAREIT_SERVER_URL=http://server:9090
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   server:
     build: server
@@ -27,12 +22,6 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/shareit
       - SPRING_DATASOURCE_USERNAME=shareit
       - SPRING_DATASOURCE_PASSWORD=shareit
-      - SHAREIT_SERVER_URL=http://server:9090
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
 
   db:
     image: postgres:16.1
