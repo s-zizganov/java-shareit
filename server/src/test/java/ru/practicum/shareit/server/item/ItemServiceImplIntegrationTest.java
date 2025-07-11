@@ -58,7 +58,8 @@ class ItemServiceImplIntegrationTest {
 
     @Test
     void createItemShouldSaveItem() {
-        ItemDto itemDto = new ItemDto(null, "Test Item", "Test Desc", true, null, userId, null, null, null, null);
+        ItemDto itemDto = new ItemDto(null, "Test Item", "Test Desc", true,
+                null, userId, null, null, null, null);
         ItemDto created = itemService.createItem(userId, itemDto);
         assertEquals("Test Item", created.getName());
     }
@@ -67,7 +68,8 @@ class ItemServiceImplIntegrationTest {
     void updateItemShouldUpdateItem() {
         Item item = new Item(null, "Old Item", "Old Desc", true, userId, null);
         Item savedItem = itemRepository.save(item);
-        ItemDto itemDto = new ItemDto(savedItem.getId(), "New Item", "New Desc", false, null, userId, null, null, null, null);
+        ItemDto itemDto = new ItemDto(savedItem.getId(), "New Item", "New Desc", false,
+                null, userId, null, null, null, null);
         ItemDto updated = itemService.updateItem(userId, savedItem.getId(), itemDto);
         assertEquals("New Item", updated.getName());
         assertEquals(false, updated.getAvailable());

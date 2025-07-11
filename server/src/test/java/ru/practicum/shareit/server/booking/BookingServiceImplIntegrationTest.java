@@ -204,9 +204,11 @@ class BookingServiceImplIntegrationTest {
         List<User> savedUsers = userRepository.saveAll(List.of(owner, booker));
         User savedOwner = savedUsers.get(0); // owner получает id=1
         User savedBooker = savedUsers.get(1); // booker получает id=2
-        Item item = new Item(null, "Test Item", "Desc", true, savedOwner.getId(), null);
+        Item item = new Item(null, "Test Item", "Desc", true, savedOwner.getId(),
+                null);
         Item savedItem = itemRepository.save(item);
-        BookingRequestDto dto = new BookingRequestDto(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2), savedItem.getId());
+        BookingRequestDto dto = new BookingRequestDto(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2),
+                savedItem.getId());
         bookingService.createBooking(savedBooker.getId(), dto);
 
         // Act
@@ -225,9 +227,11 @@ class BookingServiceImplIntegrationTest {
         List<User> savedUsers = userRepository.saveAll(List.of(owner, booker));
         User savedOwner = savedUsers.get(0);
         User savedBooker = savedUsers.get(1);
-        Item item = new Item(null, "Test Item", "Desc", true, savedOwner.getId(), null);
+        Item item = new Item(null, "Test Item", "Desc", true, savedOwner.getId(),
+                null);
         Item savedItem = itemRepository.save(item);
-        BookingRequestDto dto = new BookingRequestDto(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2), savedItem.getId());
+        BookingRequestDto dto = new BookingRequestDto(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2),
+                savedItem.getId());
         bookingService.createBooking(savedBooker.getId(), dto);
 
         // Act

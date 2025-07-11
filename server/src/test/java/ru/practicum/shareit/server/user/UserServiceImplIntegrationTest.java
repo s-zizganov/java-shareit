@@ -1,4 +1,4 @@
-package ru.practicum.shareit.server.user; // Исправлен пакет
+package ru.practicum.shareit.server.user;
 
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import ru.practicum.shareit.ShareItServer; // Импорт основного класса
+import ru.practicum.shareit.ShareItServer;
 import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.user.UserService;
 import ru.practicum.shareit.user.dto.UserDto;
