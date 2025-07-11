@@ -33,7 +33,6 @@ public class ItemServiceImpl implements ItemService {
     private final UserService userService;
     private final ItemRequestRepository itemRequestRepository;
 
-    @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
         log.info("Creating item for user ID {}, itemDto: {}", userId, itemDto);
         if (!userService.getUser(userId).isPresent()) {
@@ -44,6 +43,7 @@ public class ItemServiceImpl implements ItemService {
         }
         Item item = ItemMapper.toItem(itemDto);
         item.setOwnerId(userId);
+        log.info("Saving item with requestId: {}", item.getRequestId());
         Item savedItem = itemRepository.save(item);
         log.info("Saved item: {}", savedItem);
         return ItemMapper.toItemDto(savedItem);
